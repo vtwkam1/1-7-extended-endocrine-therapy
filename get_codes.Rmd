@@ -1,0 +1,57 @@
+---
+title: "Endocrine therapy codes"
+author: "Vanessa"
+date: "`r Sys.Date()`"
+output: 
+    html_document
+params:
+    bnf_snomed_file: "BNF Snomed Mapping data 20220718.xlsx"
+    regex: "tamoxifen|anastrozole|letrozole|exemestane"
+    project: "extended_endocrine_therapy"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+if (!require(pacman)) install.packages('pacman')
+pacman::p_load(tidyverse, readxl)
+
+```
+
+# Inputs
+
+Regex for drugs of interest: `r params$regex`  
+Project name: `r params$project`  
+BNF SNOMED mapping file (see date): `r params$bnf_snomed_file`  
+
+# Get codes
+
+Uses [BNF/SNOMED mapping](https://www.nhsbsa.nhs.uk/prescription-data/understanding-our-data/bnf-snomed-mapping).
+
+```{r}
+codes <- read_xlsx(paste0("./data/", params$bnf_snomed_file)) %>% 
+    janitor::clean_names()
+```
+
+```{r}
+# Filter for drugs using dm+d name
+drug_codes <- codes %>%
+    filter(str_detect(dm_d_product_description, regex(params$regex, ignore_case = TRUE)))
+```
+
+```{r}
+# Count BNF names
+drug_codes %>% 
+    count(bnf_name)
+```
+
+
+```{r}
+# Create output folder if it doesn't exist
+dir.create(file.path("./output"), showWarnings = FALSE)
+
+# Write
+write_csv(drug_codes, sprintf("./output/%s_drug_codes.csv", params$project))
+```
+
+
